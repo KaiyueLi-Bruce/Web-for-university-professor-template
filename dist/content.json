@@ -1,0 +1,35 @@
+{
+  "labName": "XX 大学 · XX 实验室",
+  "labSubtitle": "Lab Name",
+  "nav": [
+    { "id": "home", "label": "首页" },
+    { "id": "research", "label": "研究" },
+    { "id": "papers", "label": "论文" },
+    { "id": "people", "label": "成员" },
+    { "id": "join", "label": "加入我们" }
+  ],
+  "home": {
+    "title": "首页",
+    "description": "欢迎访问本实验室主页。这里可放置实验室简介、研究方向概览与最新动态。"
+  },
+  "research": {
+    "title": "研究",
+    "content": "研究方向与项目介绍将在此展示。"
+  },
+  "papers": {
+    "title": "论文",
+    "items": [
+      { "title": "示例论文标题", "authors": "张三, 李四", "year": "2024", "url": "" }
+    ]
+  },
+  "members": {
+    "title": "成员",
+    "list": [
+      { "name": "张老师", "role": "教授 / 导师", "image": "", "bio": "实验室负责人。" }
+    ]
+  },
+  "join": {
+    "title": "加入我们",
+    "content": "招生与招聘信息。欢迎对环境科学感兴趣的同学与学者联系。"
+  }
+}
