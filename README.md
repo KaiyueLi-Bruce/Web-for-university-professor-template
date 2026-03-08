@@ -29,7 +29,7 @@
 1. **进入项目目录**
 
    ```bash
-   cd "/Users/bruceli/local files/test/Web test"
+   cd "/Web test"
    ```
 
 2. **安装依赖**
