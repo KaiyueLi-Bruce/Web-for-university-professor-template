@@ -27,7 +27,8 @@ export function Home() {
   const [content, setContent] = useState<LabContent | null>(null);
 
   useEffect(() => {
-    fetch('/content.json')
+    const url = `${import.meta.env.BASE_URL}content.json`;
+    fetch(url)
       .then((res) => res.json())
       .then((data: LabContent) => setContent(data))
       .catch(() => setContent(defaultContent));
