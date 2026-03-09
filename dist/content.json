@@ -1,12 +1,27 @@
 {
-  "labName": "XX 大学 · XX 实验室",
-  "labSubtitle": "Lab Name",
+  "labName": "示例大学 · 示例实验室",
+  "labSubtitle": "Prof.  Lab",
   "nav": [
-    { "id": "home", "label": "首页" },
-    { "id": "research", "label": "研究" },
-    { "id": "papers", "label": "论文" },
-    { "id": "people", "label": "成员" },
-    { "id": "join", "label": "加入我们" }
+    {
+      "id": "home",
+      "label": "首页"
+    },
+    {
+      "id": "research",
+      "label": "研究"
+    },
+    {
+      "id": "papers",
+      "label": "论文"
+    },
+    {
+      "id": "people",
+      "label": "成员"
+    },
+    {
+      "id": "join",
+      "label": "加入我们"
+    }
   ],
   "home": {
     "title": "首页",
@@ -19,13 +34,23 @@
   "papers": {
     "title": "论文",
     "items": [
-      { "title": "示例论文标题", "authors": "张三, 李四", "year": "2024", "url": "" }
+      {
+        "title": "示例论文标题",
+        "authors": "张三, 李四",
+        "year": "2024",
+        "url": ""
+      }
     ]
   },
   "members": {
     "title": "成员",
     "list": [
-      { "name": "张老师", "role": "教授 / 导师", "image": "", "bio": "实验室负责人。" }
+      {
+        "name": "张老师",
+        "role": "教授 / 导师",
+        "image": "",
+        "bio": "实验室负责人。"
+      }
     ]
   },
   "join": {

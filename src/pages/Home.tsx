@@ -21,6 +21,8 @@ const defaultContent: LabContent = {
   join: { title: '加入我们', content: '' },
 };
 
+const enableEditor = import.meta.env.VITE_ENABLE_EDITOR === 'true';
+
 export function Home() {
   const [content, setContent] = useState<LabContent | null>(null);
 
@@ -52,12 +54,14 @@ export function Home() {
             <div className="mt-2 h-0.5 w-14 rounded-full bg-teal-500" aria-hidden />
           </div>
           <p className="mt-4 max-w-2xl text-slate-600 whitespace-pre-line">{home.description}</p>
-          <Link
-            to="/edit-lab-content"
-            className="mt-4 inline-block text-sm text-teal-600 hover:text-teal-700 hover:underline"
-          >
-            编辑内容 →
-          </Link>
+          {enableEditor && (
+            <Link
+              to="/edit-lab-content"
+              className="mt-4 inline-block text-sm text-teal-600 hover:text-teal-700 hover:underline"
+            >
+              编辑内容 →
+            </Link>
+          )}
         </section>
 
         <section id="research" className="scroll-mt-16 py-20">
