@@ -12,7 +12,7 @@ const defaultContent: LabContent = {
     { id: 'people', label: '成员' },
     { id: 'join', label: '加入我们' },
   ],
-  home: { title: '首页', description: '' },
+  home: { title: '首页', description: '', videoUrl: '', videoPoster: '' },
   research: { title: '研究', content: '' },
   papers: { title: '论文', items: [] },
   members: { title: '成员', list: [] },
@@ -43,7 +43,8 @@ export function EditLabContent() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('/content.json')
+    const url = `${import.meta.env.BASE_URL}content.json`;
+    fetch(url)
       .then((res) => res.json())
       .then((data: LabContent) => {
         setContent(data);
@@ -214,6 +215,38 @@ export function EditLabContent() {
                     type="text"
                     value={content.home.title}
                     onChange={(e) => update({ home: { ...content.home, title: e.target.value } })}
+                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    顶部视频地址（videoUrl）
+                  </label>
+                  <input
+                    type="text"
+                    value={content.home.videoUrl ?? ''}
+                    onChange={(e) =>
+                      update({ home: { ...content.home, videoUrl: e.target.value } })
+                    }
+                    placeholder="例如：/videos/intro.mp4 或 https://..."
+                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    推荐将视频放到 <span className="font-mono">public/videos</span>，然后填写
+                    <span className="font-mono">/videos/xxx.mp4</span>。
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    视频封面（poster，可选）
+                  </label>
+                  <input
+                    type="text"
+                    value={content.home.videoPoster ?? ''}
+                    onChange={(e) =>
+                      update({ home: { ...content.home, videoPoster: e.target.value } })
+                    }
+                    placeholder="例如：/images/video-poster.jpg"
                     className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                   />
                 </div>

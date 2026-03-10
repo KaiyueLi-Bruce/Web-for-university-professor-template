@@ -6,6 +6,8 @@ export interface NavItem {
 export interface HomeContent {
   title: string;
   description: string;
+  videoUrl?: string;
+  videoPoster?: string;
 }
 
 export interface ResearchContent {
@@ -17,7 +19,7 @@ export interface PaperItem {
   title: string;
   authors: string;
   year: string;
-  url: string;
+  url?: string;
 }
 
 export interface PapersContent {
@@ -28,8 +30,8 @@ export interface PapersContent {
 export interface MemberItem {
   name: string;
   role: string;
-  image: string;
-  bio: string;
+  image?: string;
+  bio?: string;
 }
 
 export interface MembersContent {

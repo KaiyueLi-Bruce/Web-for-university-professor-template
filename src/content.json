@@ -10,7 +10,9 @@
   ],
   "home": {
     "title": "首页",
-    "description": "欢迎访问本实验室主页。这里可放置实验室简介、研究方向概览与最新动态。"
+    "description": "欢迎访问本实验室主页。这里可放置实验室简介、研究方向概览与最新动态。",
+    "videoUrl": "",
+    "videoPoster": ""
   },
   "research": {
     "title": "研究",
