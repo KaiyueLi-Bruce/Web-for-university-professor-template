@@ -1,23 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { createStableId, defaultContent, normalizeContent } from '../lib/content';
 import type { LabContent, MemberItem, PaperItem } from '../types/content';
-
-const defaultContent: LabContent = {
-  labName: 'XX 大学 · XX 实验室',
-  labSubtitle: 'Lab Name',
-  nav: [
-    { id: 'home', label: '首页' },
-    { id: 'research', label: '研究' },
-    { id: 'papers', label: '论文' },
-    { id: 'people', label: '成员' },
-    { id: 'join', label: '加入我们' },
-  ],
-  home: { title: '首页', description: '', videoUrl: '', videoPoster: '' },
-  research: { title: '研究', content: '' },
-  papers: { title: '论文', items: [] },
-  members: { title: '成员', list: [] },
-  join: { title: '加入我们', content: '' },
-};
 
 const SIDEBAR_SECTIONS = [
   { id: 'branding', label: '导航与名称' },
@@ -45,12 +29,20 @@ export function EditLabContent() {
   useEffect(() => {
     const url = `${import.meta.env.BASE_URL}content.json`;
     fetch(url)
-      .then((res) => res.json())
-      .then((data: LabContent) => {
-        setContent(data);
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to load content.json: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setContent(normalizeContent(data));
         setLoaded(true);
       })
-      .catch(() => setLoaded(true));
+      .catch(() => {
+        setContent(defaultContent);
+        setLoaded(true);
+      });
   }, []);
 
   const update = (partial: Partial<LabContent>) => {
@@ -72,7 +64,10 @@ export function EditLabContent() {
       ...prev,
       members: {
         ...prev.members,
-        list: [...prev.members.list, { name: '', role: '', image: '', bio: '' }],
+        list: [
+          ...prev.members.list,
+          { id: createStableId('member'), name: '', role: '', image: '', bio: '' },
+        ],
       },
     }));
   };
@@ -112,7 +107,10 @@ export function EditLabContent() {
       ...prev,
       papers: {
         ...prev.papers,
-        items: [...prev.papers.items, { title: '', authors: '', year: '', url: '' }],
+        items: [
+          ...prev.papers.items,
+          { id: createStableId('paper'), title: '', authors: '', year: '', url: '' },
+        ],
       },
     }));
   };
@@ -317,7 +315,7 @@ export function EditLabContent() {
                   </div>
                   <ul className="mt-2 space-y-3">
                     {content.papers.items.map((item, i) => (
-                      <li key={i} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <li key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                         <div className="flex justify-end">
                           <button
                             type="button"
@@ -388,7 +386,7 @@ export function EditLabContent() {
                   </div>
                   <ul className="mt-2 space-y-4">
                     {content.members.list.map((m, i) => (
-                      <li key={i} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <li key={m.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <div className="flex justify-end">
                           <button
                             type="button"
@@ -423,7 +421,7 @@ export function EditLabContent() {
                               <input
                                 type="text"
                                 placeholder="/images/xxx.jpg"
-                                value={m.image.startsWith('data:') ? '' : m.image}
+                                value={m.image?.startsWith('data:') ? '' : (m.image ?? '')}
                                 onChange={(e) => updateMember(i, 'image', e.target.value)}
                                 className="rounded border border-slate-300 px-2 py-1 text-xs"
                               />

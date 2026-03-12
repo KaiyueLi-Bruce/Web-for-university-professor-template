@@ -16,6 +16,7 @@ export interface ResearchContent {
 }
 
 export interface PaperItem {
+  id: string;
   title: string;
   authors: string;
   year: string;
@@ -28,6 +29,7 @@ export interface PapersContent {
 }
 
 export interface MemberItem {
+  id: string;
   name: string;
   role: string;
   image?: string;

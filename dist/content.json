@@ -26,7 +26,7 @@
   "home": {
     "title": "首页",
     "description": "欢迎访问本实验室主页。这里可放置实验室简介、研究方向概览与最新动态。",
-    "videoUrl": "https://www.youtube.com/watch?v=QggJzZdIYPI",
+    "videoUrl": "<iframe src=\"//player.bilibili.com/player.html?isOutside=true&aid=115579767819032&bvid=BV1DHycBAE2N&cid=34122893493&p=1\" scrolling=\"no\" border=\"0\" frameborder=\"no\" framespacing=\"0\" allowfullscreen=\"true\"></iframe>",
     "videoPoster": ""
   },
   "research": {
@@ -37,6 +37,7 @@
     "title": "论文",
     "items": [
       {
+        "id": "paper-1",
         "title": "示例论文标题",
         "authors": "张三, 李四",
         "year": "2024",
@@ -48,6 +49,7 @@
     "title": "成员",
     "list": [
       {
+        "id": "member-1",
         "name": "张老师",
         "role": "教授 / 导师",
         "image": "",

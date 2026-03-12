@@ -3,48 +3,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { SectionTitle } from '../components/SectionTitle';
+import { defaultContent, normalizeContent } from '../lib/content';
 import type { LabContent } from '../types/content';
 
-const defaultContent: LabContent = {
-  labName: 'XX 大学 · XX 实验室',
-  labSubtitle: 'Lab Name',
-  nav: [
-    { id: 'home', label: '首页' },
-    { id: 'research', label: '研究' },
-    { id: 'papers', label: '论文' },
-    { id: 'people', label: '成员' },
-    { id: 'join', label: '加入我们' },
-  ],
-  home: { title: '首页', description: '加载中…', videoUrl: '', videoPoster: '' },
-  research: { title: '研究', content: '' },
-  papers: { title: '论文', items: [] },
-  members: { title: '成员', list: [] },
-  join: { title: '加入我们', content: '' },
-};
-
 const enableEditor = import.meta.env.VITE_ENABLE_EDITOR === 'true';
-
-function normalizeContent(data: unknown): LabContent {
-  const d = (data ?? {}) as Partial<LabContent>;
-  return {
-    ...defaultContent,
-    ...d,
-    nav: Array.isArray(d.nav) && d.nav.length > 0 ? d.nav : defaultContent.nav,
-    home: { ...defaultContent.home, ...(d.home ?? {}) },
-    research: { ...defaultContent.research, ...(d.research ?? {}) },
-    papers: {
-      ...defaultContent.papers,
-      ...(d.papers ?? {}),
-      items: Array.isArray(d.papers?.items) ? d.papers!.items : defaultContent.papers.items,
-    },
-    members: {
-      ...defaultContent.members,
-      ...(d.members ?? {}),
-      list: Array.isArray(d.members?.list) ? d.members!.list : defaultContent.members.list,
-    },
-    join: { ...defaultContent.join, ...(d.join ?? {}) },
-  };
-}
 
 export function Home() {
   const [content, setContent] = useState<LabContent | null>(null);
@@ -54,25 +16,50 @@ export function Home() {
   useEffect(() => {
     const url = `${import.meta.env.BASE_URL}content.json`;
     fetch(url)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to load content.json: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => setContent(normalizeContent(data)))
       .catch(() => setContent(defaultContent));
   }, []);
 
-  const videoUrl = useMemo(() => content?.home.videoUrl?.trim() ?? '', [content]);
+  const rawVideoInput = useMemo(() => content?.home.videoUrl?.trim() ?? '', [content]);
+
+  const videoUrl = useMemo(() => {
+    if (!rawVideoInput) return '';
+
+    const iframeSrcMatch = rawVideoInput.match(/<iframe[^>]*\ssrc=["']([^"']+)["'][^>]*>/i);
+    const candidate = (iframeSrcMatch?.[1] ?? rawVideoInput).trim();
+
+    if (candidate.startsWith('//')) {
+      return `https:${candidate}`;
+    }
+    return candidate;
+  }, [rawVideoInput]);
+
   const videoPoster = useMemo(() => content?.home.videoPoster?.trim() ?? '', [content]);
   const canShowVideo = useMemo(() => Boolean(videoUrl), [videoUrl]);
   const isYouTube = useMemo(() => videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be'), [videoUrl]);
+  const isIFrameVideo = useMemo(() => isYouTube || videoUrl.includes('player.bilibili.com'), [isYouTube, videoUrl]);
   const embedUrl = useMemo(() => {
-    if (!isYouTube) return '';
+    if (!isIFrameVideo) return '';
+
+    if (videoUrl.includes('player.bilibili.com')) {
+      return videoUrl;
+    }
+
     try {
       const url = new URL(videoUrl);
-      const videoId = url.searchParams.get('v') || url.pathname.split('/').pop();
+      const videoId = url.searchParams.get('v') || url.pathname.split('/').filter(Boolean).pop();
+      if (!videoId) return '';
       return `https://www.youtube.com/embed/${videoId}`;
     } catch {
       return '';
     }
-  }, [videoUrl, isYouTube]);
+  }, [videoUrl, isIFrameVideo]);
 
   if (!content) {
     return (
@@ -108,10 +95,11 @@ export function Home() {
         <section className="mx-auto max-w-6xl px-4 pt-6">
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="relative">
-              {isYouTube ? (
+              {isIFrameVideo ? (
                 <iframe
                   src={embedUrl}
                   className="h-[220px] w-full bg-black sm:h-[320px] md:h-[420px]"
+                  loading="lazy"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -161,8 +149,8 @@ export function Home() {
         <section id="papers" className="scroll-mt-16 py-20">
           <SectionTitle>{papers.title}</SectionTitle>
           <ul className="mt-4 space-y-3">
-            {(papers.items ?? []).map((item, i) => (
-              <li key={i} className="rounded-lg border border-slate-200 bg-white p-3 text-slate-700">
+            {(papers.items ?? []).map((item) => (
+              <li key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 text-slate-700">
                 <div className="font-medium">{item.title}</div>
                 <div className="mt-1 text-sm text-slate-500">
                   {item.authors} · {item.year}
@@ -180,8 +168,8 @@ export function Home() {
         <section id="people" className="scroll-mt-16 py-20">
           <SectionTitle>{members.title}</SectionTitle>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(members.list ?? []).map((m, i) => (
-              <div key={i} className="rounded-lg border border-slate-200 bg-white p-4">
+            {(members.list ?? []).map((m) => (
+              <div key={m.id} className="rounded-lg border border-slate-200 bg-white p-4">
                 {m.image ? (
                   <img
                     src={m.image}
@@ -207,7 +195,7 @@ export function Home() {
         </section>
       </main>
 
-      {canShowVideo && !isYouTube && (
+      {canShowVideo && !isIFrameVideo && (
         <button
           type="button"
           onClick={togglePlay}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { NavItem } from '../types/content';
 
 interface NavbarProps {
@@ -10,6 +10,43 @@ interface NavbarProps {
 export function Navbar({ navItems, labName, labSubtitle }: NavbarProps) {
   const [active, setActive] = useState(navItems[0]?.id ?? 'home');
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!navItems.length) return;
+    setActive((prev) => (navItems.some((item) => item.id === prev) ? prev : navItems[0].id));
+  }, [navItems]);
+
+  useEffect(() => {
+    const sections = navItems
+      .map((item) => document.getElementById(item.id))
+      .filter((el): el is HTMLElement => Boolean(el));
+
+    if (!sections.length) return;
+
+    const updateActiveByScroll = () => {
+      const marker = 96;
+      let currentId = sections[0].id;
+
+      for (const section of sections) {
+        if (section.getBoundingClientRect().top - marker <= 0) {
+          currentId = section.id;
+        } else {
+          break;
+        }
+      }
+
+      setActive(currentId);
+    };
+
+    updateActiveByScroll();
+    window.addEventListener('scroll', updateActiveByScroll, { passive: true });
+    window.addEventListener('resize', updateActiveByScroll);
+
+    return () => {
+      window.removeEventListener('scroll', updateActiveByScroll);
+      window.removeEventListener('resize', updateActiveByScroll);
+    };
+  }, [navItems]);
 
   const handleNavClick = (id: string) => {
     setActive(id);
