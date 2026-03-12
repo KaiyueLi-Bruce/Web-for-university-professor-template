@@ -65,7 +65,7 @@ export function Navbar({ navItems, labName, labSubtitle }: NavbarProps) {
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-teal-600 border-b border-teal-700/50">
+    <nav className="sticky top-0 z-50 border-b border-teal-700/50 bg-teal-600">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:py-3.5">
         <div className="flex min-w-0 flex-1 items-baseline gap-2 md:flex-initial">
           <span className="font-display truncate text-base font-semibold tracking-tight text-white sm:text-lg md:text-xl">
@@ -118,26 +118,31 @@ export function Navbar({ navItems, labName, labSubtitle }: NavbarProps) {
         </button>
       </div>
 
-      {menuOpen && (
-        <div className="border-t border-teal-700/50 bg-teal-600 px-4 py-3 md:hidden">
-          <div className="flex flex-col gap-1">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleNavClick(item.id)}
-                className={`
-                  w-full rounded-md px-3 py-2.5 text-left text-sm font-medium text-white transition-colors duration-200
-                  hover:bg-teal-700 active:bg-teal-700
-                  ${active === item.id ? 'bg-teal-700' : ''}
-                `}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+      <div
+        className={`
+          absolute left-0 right-0 top-full md:hidden
+          border-t border-teal-700/50 bg-teal-600 px-4 py-3 shadow-lg
+          origin-top transition-all duration-200 ease-out
+          ${menuOpen ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0 pointer-events-none'}
+        `}
+      >
+        <div className="flex flex-col gap-1">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleNavClick(item.id)}
+              className={`
+                w-full rounded-md px-3 py-2.5 text-left text-sm font-medium text-white transition-colors duration-200
+                hover:bg-teal-700 active:bg-teal-700
+                ${active === item.id ? 'bg-teal-700' : ''}
+              `}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
     </nav>
   );
 }
