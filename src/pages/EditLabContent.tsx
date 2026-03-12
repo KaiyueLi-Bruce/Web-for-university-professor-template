@@ -3,6 +3,13 @@ import { Link } from 'react-router-dom';
 import { createStableId, defaultContent, normalizeContent } from '../lib/content';
 import type { LabContent, MemberItem, PaperItem, ResearchItem } from '../types/content';
 
+function getAssetUrl(path: string): string {
+  if (!path) return '';
+  if (path.startsWith('data:') || path.startsWith('http')) return path;
+  const base = import.meta.env.BASE_URL;
+  return base + path.replace(/^\//, '');
+}
+
 const SIDEBAR_SECTIONS = [
   { id: 'branding', label: '导航与名称' },
   { id: 'home', label: '首页' },
@@ -367,7 +374,7 @@ export function EditLabContent() {
                               <div className="flex-shrink-0">
                                 {item.image ? (
                                   <img
-                                    src={item.image}
+                                    src={getAssetUrl(item.image)}
                                     alt={item.title || '研究'}
                                     className="h-24 w-32 rounded object-cover"
                                   />
@@ -517,7 +524,7 @@ export function EditLabContent() {
                           <div className="shrink-0">
                             {m.image ? (
                               <img
-                                src={m.image}
+                                src={getAssetUrl(m.image)}
                                 alt={m.name || '成员'}
                                 className="h-20 w-20 rounded-full object-cover"
                               />

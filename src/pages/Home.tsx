@@ -8,6 +8,13 @@ import type { LabContent } from '../types/content';
 
 const enableEditor = import.meta.env.VITE_ENABLE_EDITOR === 'true';
 
+function getAssetUrl(path: string): string {
+  if (!path) return '';
+  if (path.startsWith('data:') || path.startsWith('http')) return path;
+  const base = import.meta.env.BASE_URL;
+  return base + path.replace(/^\//, '');
+}
+
 export function Home() {
   const [content, setContent] = useState<LabContent | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -153,7 +160,7 @@ export function Home() {
                 {item.image && (
                   <div className="flex-shrink-0 w-full md:w-80">
                     <img
-                      src={item.image}
+                      src={getAssetUrl(item.image)}
                       alt={item.title}
                       className="w-full rounded-lg object-cover shadow-md"
                     />
@@ -190,7 +197,7 @@ export function Home() {
               <div key={m.id} className="rounded-lg border border-slate-200 bg-white p-4">
                 {m.image ? (
                   <img
-                    src={m.image}
+                    src={getAssetUrl(m.image)}
                     alt={m.name}
                     className="h-24 w-24 rounded-full object-cover"
                   />
