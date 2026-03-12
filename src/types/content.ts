@@ -10,9 +10,16 @@ export interface HomeContent {
   videoPoster?: string;
 }
 
+export interface ResearchItem {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+}
+
 export interface ResearchContent {
   title: string;
-  content: string;
+  items: ResearchItem[];
 }
 
 export interface PaperItem {

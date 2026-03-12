@@ -143,7 +143,25 @@ export function Home() {
 
         <section id="research" className="scroll-mt-16 py-20">
           <SectionTitle>{research.title}</SectionTitle>
-          <p className="mt-4 text-slate-600 whitespace-pre-line">{research.content}</p>
+          <div className="mt-8 space-y-12">
+            {(research.items ?? []).map((item) => (
+              <div key={item.id} className="flex flex-col items-center gap-6 md:flex-row md:gap-8">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl font-semibold text-slate-800">{item.title}</h3>
+                  <p className="mt-3 text-slate-600 whitespace-pre-line leading-relaxed">{item.description}</p>
+                </div>
+                {item.image && (
+                  <div className="flex-shrink-0 w-full md:w-80">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full rounded-lg object-cover shadow-md"
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </section>
 
         <section id="papers" className="scroll-mt-16 py-20">

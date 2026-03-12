@@ -31,6 +31,14 @@
   },
   "research": {
     "title": "研究",
+    "items": [
+      {
+        "id": "research-1773357250950-c0jkvo",
+        "title": "水中微生物检测",
+        "description": "长期监测水中微生物种类以及其对水质的影响",
+        "image": "/image/microbes.jpg"
+      }
+    ],
     "content": "研究方向与项目介绍将在此展示。"
   },
   "papers": {

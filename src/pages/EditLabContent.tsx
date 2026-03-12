@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createStableId, defaultContent, normalizeContent } from '../lib/content';
-import type { LabContent, MemberItem, PaperItem } from '../types/content';
+import type { LabContent, MemberItem, PaperItem, ResearchItem } from '../types/content';
 
 const SIDEBAR_SECTIONS = [
   { id: 'branding', label: '导航与名称' },
@@ -131,6 +131,49 @@ export function EditLabContent() {
       items[index] = { ...items[index], [field]: value };
       return { ...prev, papers: { ...prev.papers, items } };
     });
+  };
+
+  const addResearch = () => {
+    setContent((prev) => ({
+      ...prev,
+      research: {
+        ...prev.research,
+        items: [
+          ...prev.research.items,
+          { id: createStableId('research'), title: '', description: '', image: '' },
+        ],
+      },
+    }));
+  };
+
+  const removeResearch = (index: number) => {
+    setContent((prev) => ({
+      ...prev,
+      research: {
+        ...prev.research,
+        items: prev.research.items.filter((_, i) => i !== index),
+      },
+    }));
+  };
+
+  const updateResearch = (index: number, field: keyof ResearchItem, value: string) => {
+    setContent((prev) => {
+      const items = [...prev.research.items];
+      items[index] = { ...items[index], [field]: value };
+      return { ...prev, research: { ...prev.research, items } };
+    });
+  };
+
+  const onResearchImageFile = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const base64 = await toBase64(file);
+      updateResearch(index, 'image', base64);
+    } catch {
+      alert('图片读取失败');
+    }
+    e.target.value = '';
   };
 
   if (!loaded) {
@@ -267,7 +310,7 @@ export function EditLabContent() {
               <div className="mt-2 h-0.5 w-12 rounded-full bg-teal-500" />
               <div className="mt-4 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">标题</label>
+                  <label className="block text-sm font-medium text-slate-700">板块标题</label>
                   <input
                     type="text"
                     value={content.research.title}
@@ -276,13 +319,87 @@ export function EditLabContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">内容</label>
-                  <textarea
-                    value={content.research.content}
-                    onChange={(e) => update({ research: { ...content.research, content: e.target.value } })}
-                    rows={8}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-700">研究分支</span>
+                    <button
+                      type="button"
+                      onClick={addResearch}
+                      className="rounded-md bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
+                    >
+                      添加分支
+                    </button>
+                  </div>
+                  <ul className="mt-2 space-y-4">
+                    {content.research.items.map((item, i) => (
+                      <li key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => removeResearch(i)}
+                            className="text-sm text-red-600 hover:underline"
+                          >
+                            删除
+                          </button>
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs font-medium text-slate-700">分支标题</label>
+                            <input
+                              placeholder="例如：水质监测"
+                              value={item.title}
+                              onChange={(e) => updateResearch(i, 'title', e.target.value)}
+                              className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-slate-700">分支描述</label>
+                            <textarea
+                              placeholder="详细描述该研究分支"
+                              value={item.description}
+                              onChange={(e) => updateResearch(i, 'description', e.target.value)}
+                              rows={4}
+                              className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-slate-700">配图</label>
+                            <div className="mt-2 flex gap-3">
+                              <div className="flex-shrink-0">
+                                {item.image ? (
+                                  <img
+                                    src={item.image}
+                                    alt={item.title || '研究'}
+                                    className="h-24 w-32 rounded object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-24 w-32 items-center justify-center rounded bg-slate-200 text-sm text-slate-500">
+                                    暂无图片
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <label className="text-xs text-slate-500">上传图片</label>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => onResearchImageFile(i, e)}
+                                  className="text-xs"
+                                />
+                                <span className="text-xs text-slate-500">或填写路径：</span>
+                                <input
+                                  type="text"
+                                  placeholder="/images/research-xxx.jpg"
+                                  value={item.image?.startsWith('data:') ? '' : (item.image ?? '')}
+                                  onChange={(e) => updateResearch(i, 'image', e.target.value)}
+                                  className="rounded border border-slate-300 px-2 py-1 text-xs"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             </section>

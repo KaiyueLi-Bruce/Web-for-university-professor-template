@@ -11,7 +11,7 @@ export const defaultContent: LabContent = {
     { id: 'join', label: '加入我们' },
   ],
   home: { title: '首页', description: '加载中…', videoUrl: '', videoPoster: '' },
-  research: { title: '研究', content: '' },
+  research: { title: '研究', items: [] },
   papers: { title: '论文', items: [] },
   members: { title: '成员', list: [] },
   join: { title: '加入我们', content: '' },
@@ -41,6 +41,15 @@ function normalizeMember(item: Partial<MemberItem>, index: number): MemberItem {
   };
 }
 
+function normalizeResearch(item: Partial<any>, index: number): any {
+  return {
+    id: item.id?.trim() || `research-${index + 1}`,
+    title: item.title ?? '',
+    description: item.description ?? '',
+    image: item.image ?? '',
+  };
+}
+
 export function normalizeContent(data: unknown): LabContent {
   const d = (data ?? {}) as Partial<LabContent>;
   const papersItems = Array.isArray(d.papers?.items)
@@ -49,13 +58,20 @@ export function normalizeContent(data: unknown): LabContent {
   const membersList = Array.isArray(d.members?.list)
     ? d.members.list.map((item, index) => normalizeMember(item, index))
     : defaultContent.members.list;
+  const researchItems = Array.isArray(d.research?.items)
+    ? d.research.items.map((item, index) => normalizeResearch(item, index))
+    : defaultContent.research.items;
 
   return {
     ...defaultContent,
     ...d,
     nav: Array.isArray(d.nav) && d.nav.length > 0 ? d.nav : defaultContent.nav,
     home: { ...defaultContent.home, ...(d.home ?? {}) },
-    research: { ...defaultContent.research, ...(d.research ?? {}) },
+    research: {
+      ...defaultContent.research,
+      ...(d.research ?? {}),
+      items: researchItems,
+    },
     papers: {
       ...defaultContent.papers,
       ...(d.papers ?? {}),
