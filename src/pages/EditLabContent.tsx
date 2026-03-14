@@ -10,6 +10,8 @@ function getAssetUrl(path: string): string {
   return base + path.replace(/^\//, '');
 }
 
+const IMAGE_ERROR_PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23e2e8f0"/%3E%3Ctext x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="14" fill="%2394a3b8"%3E加载失败%3C/text%3E%3C/svg%3E';
+
 const SIDEBAR_SECTIONS = [
   { id: 'branding', label: '导航与名称' },
   { id: 'home', label: '首页' },
@@ -32,6 +34,8 @@ export function EditLabContent() {
   const [content, setContent] = useState<LabContent>(defaultContent);
   const [activeSection, setActiveSection] = useState('branding');
   const [loaded, setLoaded] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [imageLoadErrors, setImageLoadErrors] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     const url = `${import.meta.env.BASE_URL}content.json`;
@@ -54,6 +58,11 @@ export function EditLabContent() {
 
   const update = (partial: Partial<LabContent>) => {
     setContent((prev) => ({ ...prev, ...partial }));
+  };
+
+  const handleImageLoadError = (imageId: string, imageUrl: string) => {
+    setImageErrors((prev) => new Set([...prev, imageId]));
+    setImageLoadErrors((prev) => new Map([...prev, [imageId, imageUrl]]));
   };
 
   const handleExport = () => {
@@ -103,6 +112,17 @@ export function EditLabContent() {
     try {
       const base64 = await toBase64(file);
       updateMember(index, 'image', base64);
+      // Clear error when file upload succeeds
+      setImageErrors((prev) => {
+        const updated = new Set(prev);
+        updated.delete(`member-${index}`);
+        return updated;
+      });
+      setImageLoadErrors((prev) => {
+        const updated = new Map(prev);
+        updated.delete(`member-${index}`);
+        return updated;
+      });
     } catch {
       alert('图片读取失败');
     }
@@ -177,6 +197,17 @@ export function EditLabContent() {
     try {
       const base64 = await toBase64(file);
       updateResearch(index, 'image', base64);
+      // Clear error when file upload succeeds
+      setImageErrors((prev) => {
+        const updated = new Set(prev);
+        updated.delete(`research-${index}`);
+        return updated;
+      });
+      setImageLoadErrors((prev) => {
+        const updated = new Map(prev);
+        updated.delete(`research-${index}`);
+        return updated;
+      });
     } catch {
       alert('图片读取失败');
     }
@@ -373,11 +404,19 @@ export function EditLabContent() {
                             <div className="mt-2 flex gap-3">
                               <div className="flex-shrink-0">
                                 {item.image ? (
-                                  <img
-                                    src={getAssetUrl(item.image)}
-                                    alt={item.title || '研究'}
-                                    className="h-24 w-32 rounded object-cover"
-                                  />
+                                  <div>
+                                    <img
+                                      src={imageErrors.has(`research-${i}`) ? IMAGE_ERROR_PLACEHOLDER : getAssetUrl(item.image)}
+                                      alt={item.title || '研究'}
+                                      className="h-24 w-32 rounded object-cover"
+                                      onError={() => handleImageLoadError(`research-${i}`, item.image)}
+                                    />
+                                    {imageErrors.has(`research-${i}`) && (
+                                      <p className="mt-1 text-xs text-red-600">
+                                        加载失败：{item.image}
+                                      </p>
+                                    )}
+                                  </div>
                                 ) : (
                                   <div className="flex h-24 w-32 items-center justify-center rounded bg-slate-200 text-sm text-slate-500">
                                     暂无图片
@@ -397,7 +436,15 @@ export function EditLabContent() {
                                   type="text"
                                   placeholder="/images/research-xxx.jpg"
                                   value={item.image?.startsWith('data:') ? '' : (item.image ?? '')}
-                                  onChange={(e) => updateResearch(i, 'image', e.target.value)}
+                                  onChange={(e) => {
+                                    updateResearch(i, 'image', e.target.value);
+                                    // Clear error when image path is changed
+                                    setImageErrors((prev) => {
+                                      const updated = new Set(prev);
+                                      updated.delete(`research-${i}`);
+                                      return updated;
+                                    });
+                                  }}
                                   className="rounded border border-slate-300 px-2 py-1 text-xs"
                                 />
                               </div>
@@ -523,11 +570,19 @@ export function EditLabContent() {
                         <div className="flex gap-4">
                           <div className="shrink-0">
                             {m.image ? (
-                              <img
-                                src={getAssetUrl(m.image)}
-                                alt={m.name || '成员'}
-                                className="h-20 w-20 rounded-full object-cover"
-                              />
+                              <div>
+                                <img
+                                  src={imageErrors.has(`member-${i}`) ? IMAGE_ERROR_PLACEHOLDER : getAssetUrl(m.image)}
+                                  alt={m.name || '成员'}
+                                  className="h-20 w-20 rounded-full object-cover"
+                                  onError={() => handleImageLoadError(`member-${i}`, m.image)}
+                                />
+                                {imageErrors.has(`member-${i}`) && (
+                                  <p className="mt-1 text-xs text-red-600">
+                                    加载失败
+                                  </p>
+                                )}
+                              </div>
                             ) : (
                               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-teal-100 text-teal-600">
                                 暂无
@@ -546,7 +601,15 @@ export function EditLabContent() {
                                 type="text"
                                 placeholder="/images/xxx.jpg"
                                 value={m.image?.startsWith('data:') ? '' : (m.image ?? '')}
-                                onChange={(e) => updateMember(i, 'image', e.target.value)}
+                                onChange={(e) => {
+                                  updateMember(i, 'image', e.target.value);
+                                  // Clear error when image path is changed
+                                  setImageErrors((prev) => {
+                                    const updated = new Set(prev);
+                                    updated.delete(`member-${i}`);
+                                    return updated;
+                                  });
+                                }}
                                 className="rounded border border-slate-300 px-2 py-1 text-xs"
                               />
                             </div>

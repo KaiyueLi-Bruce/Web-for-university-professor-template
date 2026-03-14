@@ -15,10 +15,14 @@ function getAssetUrl(path: string): string {
   return base + path.replace(/^\//, '');
 }
 
+const IMAGE_ERROR_PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23e2e8f0"/%3E%3Ctext x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="14" fill="%2394a3b8"%3E加载失败%3C/text%3E%3C/svg%3E';
+
 export function Home() {
   const [content, setContent] = useState<LabContent | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [imageErrorMessages, setImageErrorMessages] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     const url = `${import.meta.env.BASE_URL}content.json`;
@@ -67,6 +71,11 @@ export function Home() {
       return '';
     }
   }, [videoUrl, isIFrameVideo]);
+
+  const handleImageLoadError = (imageId: string, imageUrl: string) => {
+    setImageErrors((prev) => new Set([...prev, imageId]));
+    setImageErrorMessages((prev) => new Map([...prev, [imageId, imageUrl]]));
+  };
 
   if (!content) {
     return (
@@ -159,11 +168,27 @@ export function Home() {
                 </div>
                 {item.image && (
                   <div className="flex-shrink-0 w-full md:w-80">
-                    <img
-                      src={getAssetUrl(item.image)}
-                      alt={item.title}
-                      className="w-full rounded-lg object-cover shadow-md"
-                    />
+                    {imageErrors.has(`research-${item.id}`) ? (
+                      <div className="relative">
+                        <img
+                          src={IMAGE_ERROR_PLACEHOLDER}
+                          alt={item.title}
+                          className="w-full rounded-lg object-cover shadow-md"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40">
+                          <p className="text-sm text-white text-center px-2">
+                            图片加载失败<br/>{item.image}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={getAssetUrl(item.image)}
+                        alt={item.title}
+                        className="w-full rounded-lg object-cover shadow-md"
+                        onError={() => handleImageLoadError(`research-${item.id}`, item.image)}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -196,11 +221,27 @@ export function Home() {
             {(members.list ?? []).map((m) => (
               <div key={m.id} className="rounded-lg border border-slate-200 bg-white p-4">
                 {m.image ? (
-                  <img
-                    src={getAssetUrl(m.image)}
-                    alt={m.name}
-                    className="h-24 w-24 rounded-full object-cover"
-                  />
+                  <div className="relative inline-block">
+                    {imageErrors.has(`member-${m.id}`) ? (
+                      <div className="relative">
+                        <img
+                          src={IMAGE_ERROR_PLACEHOLDER}
+                          alt={m.name}
+                          className="h-24 w-24 rounded-full object-cover"
+                        />
+                        <div className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                          ✕
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={getAssetUrl(m.image)}
+                        alt={m.name}
+                        className="h-24 w-24 rounded-full object-cover"
+                        onError={() => handleImageLoadError(`member-${m.id}`, m.image)}
+                      />
+                    )}
+                  </div>
                 ) : (
                   <div className="flex h-24 w-24 items-center justify-center rounded-full bg-teal-100 text-xl font-semibold text-teal-700">
                     {(m.name ?? '').slice(0, 1)}
