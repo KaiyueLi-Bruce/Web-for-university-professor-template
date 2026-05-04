@@ -1,16 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createStableId, defaultContent, normalizeContent } from '../lib/content';
+import { getAssetUrl, IMAGE_ERROR_PLACEHOLDER, toBase64 } from '../utils/common';
+import { useListManager } from '../hooks/useListManager';
 import type { LabContent, MemberItem, PaperItem, ResearchItem } from '../types/content';
-
-function getAssetUrl(path: string): string {
-  if (!path) return '';
-  if (path.startsWith('data:') || path.startsWith('http')) return path;
-  const base = import.meta.env.BASE_URL;
-  return base + path.replace(/^\//, '');
-}
-
-const IMAGE_ERROR_PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23e2e8f0"/%3E%3Ctext x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="14" fill="%2394a3b8"%3E加载失败%3C/text%3E%3C/svg%3E';
 
 const SIDEBAR_SECTIONS = [
   { id: 'branding', label: '导航与名称' },
@@ -21,21 +14,30 @@ const SIDEBAR_SECTIONS = [
   { id: 'join', label: '加入我们' },
 ];
 
-function toBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 export function EditLabContent() {
   const [content, setContent] = useState<LabContent>(defaultContent);
   const [activeSection, setActiveSection] = useState('branding');
   const [loaded, setLoaded] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [imageLoadErrors, setImageLoadErrors] = useState<Map<string, string>>(new Map());
+
+  const members = useListManager<MemberItem>(
+    content.members.list,
+    'member',
+    () => ({ id: '', name: '', role: '', image: '', bio: '' })
+  );
+
+  const papers = useListManager<PaperItem>(
+    content.papers.items,
+    'paper',
+    () => ({ id: '', title: '', authors: '', year: '', url: '' })
+  );
+
+  const research = useListManager<ResearchItem>(
+    content.research.items,
+    'research',
+    () => ({ id: '', title: '', description: '', image: '' })
+  );
 
   useEffect(() => {
     const url = `${import.meta.env.BASE_URL}content.json`;
@@ -56,6 +58,19 @@ export function EditLabContent() {
       });
   }, []);
 
+  // Sync list managers when content changes
+  useEffect(() => {
+    members.setItems(content.members.list);
+  }, [content.members.list]);
+
+  useEffect(() => {
+    papers.setItems(content.papers.items);
+  }, [content.papers.items]);
+
+  useEffect(() => {
+    research.setItems(content.research.items);
+  }, [content.research.items]);
+
   const update = (partial: Partial<LabContent>) => {
     setContent((prev) => ({ ...prev, ...partial }));
   };
@@ -75,44 +90,12 @@ export function EditLabContent() {
     URL.revokeObjectURL(url);
   };
 
-  const addMember = () => {
-    setContent((prev) => ({
-      ...prev,
-      members: {
-        ...prev.members,
-        list: [
-          ...prev.members.list,
-          { id: createStableId('member'), name: '', role: '', image: '', bio: '' },
-        ],
-      },
-    }));
-  };
-
-  const removeMember = (index: number) => {
-    setContent((prev) => ({
-      ...prev,
-      members: {
-        ...prev.members,
-        list: prev.members.list.filter((_, i) => i !== index),
-      },
-    }));
-  };
-
-  const updateMember = (index: number, field: keyof MemberItem, value: string) => {
-    setContent((prev) => {
-      const list = [...prev.members.list];
-      list[index] = { ...list[index], [field]: value };
-      return { ...prev, members: { ...prev.members, list } };
-    });
-  };
-
   const onMemberImageFile = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const base64 = await toBase64(file);
-      updateMember(index, 'image', base64);
-      // Clear error when file upload succeeds
+      members.updateItem(index, { image: base64 } as Partial<MemberItem>);
       setImageErrors((prev) => {
         const updated = new Set(prev);
         updated.delete(`member-${index}`);
@@ -127,68 +110,6 @@ export function EditLabContent() {
       alert('图片读取失败');
     }
     e.target.value = '';
-  };
-
-  const addPaper = () => {
-    setContent((prev) => ({
-      ...prev,
-      papers: {
-        ...prev.papers,
-        items: [
-          ...prev.papers.items,
-          { id: createStableId('paper'), title: '', authors: '', year: '', url: '' },
-        ],
-      },
-    }));
-  };
-
-  const removePaper = (index: number) => {
-    setContent((prev) => ({
-      ...prev,
-      papers: {
-        ...prev.papers,
-        items: prev.papers.items.filter((_, i) => i !== index),
-      },
-    }));
-  };
-
-  const updatePaper = (index: number, field: keyof PaperItem, value: string) => {
-    setContent((prev) => {
-      const items = [...prev.papers.items];
-      items[index] = { ...items[index], [field]: value };
-      return { ...prev, papers: { ...prev.papers, items } };
-    });
-  };
-
-  const addResearch = () => {
-    setContent((prev) => ({
-      ...prev,
-      research: {
-        ...prev.research,
-        items: [
-          ...prev.research.items,
-          { id: createStableId('research'), title: '', description: '', image: '' },
-        ],
-      },
-    }));
-  };
-
-  const removeResearch = (index: number) => {
-    setContent((prev) => ({
-      ...prev,
-      research: {
-        ...prev.research,
-        items: prev.research.items.filter((_, i) => i !== index),
-      },
-    }));
-  };
-
-  const updateResearch = (index: number, field: keyof ResearchItem, value: string) => {
-    setContent((prev) => {
-      const items = [...prev.research.items];
-      items[index] = { ...items[index], [field]: value };
-      return { ...prev, research: { ...prev.research, items } };
-    });
   };
 
   const onResearchImageFile = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,8 +117,7 @@ export function EditLabContent() {
     if (!file) return;
     try {
       const base64 = await toBase64(file);
-      updateResearch(index, 'image', base64);
-      // Clear error when file upload succeeds
+      research.updateItem(index, { image: base64 } as Partial<ResearchItem>);
       setImageErrors((prev) => {
         const updated = new Set(prev);
         updated.delete(`research-${index}`);
@@ -212,6 +132,15 @@ export function EditLabContent() {
       alert('图片读取失败');
     }
     e.target.value = '';
+  };
+
+  const syncListsToContent = () => {
+    setContent((prev) => ({
+      ...prev,
+      members: { ...prev.members, list: members.items },
+      papers: { ...prev.papers, items: papers.items },
+      research: { ...prev.research, items: research.items },
+    }));
   };
 
   if (!loaded) {
@@ -233,6 +162,16 @@ export function EditLabContent() {
             <span className="text-slate-400">|</span>
             <span className="font-semibold text-slate-800">实验室内容编辑</span>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              syncListsToContent();
+              handleExport();
+            }}
+            className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 transition"
+          >
+            导出内容.json
+          </button>
         </div>
       </header>
 
@@ -298,43 +237,27 @@ export function EditLabContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    顶部视频地址（videoUrl）
-                  </label>
-                  <input
-                    type="text"
-                    value={content.home.videoUrl ?? ''}
-                    onChange={(e) =>
-                      update({ home: { ...content.home, videoUrl: e.target.value } })
-                    }
-                    placeholder="例如：/videos/intro.mp4 或 https://..."
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">
-                    推荐将视频放到 <span className="font-mono">public/videos</span>，然后填写
-                    <span className="font-mono">/videos/xxx.mp4</span>。
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    视频封面（poster，可选）
-                  </label>
-                  <input
-                    type="text"
-                    value={content.home.videoPoster ?? ''}
-                    onChange={(e) =>
-                      update({ home: { ...content.home, videoPoster: e.target.value } })
-                    }
-                    placeholder="例如：/images/video-poster.jpg"
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">简介</label>
+                  <label className="block text-sm font-medium text-slate-700">描述</label>
                   <textarea
                     value={content.home.description}
                     onChange={(e) => update({ home: { ...content.home, description: e.target.value } })}
-                    rows={6}
+                    className="mt-1 h-24 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">视频URL或iframe代码</label>
+                  <textarea
+                    value={content.home.videoUrl}
+                    onChange={(e) => update({ home: { ...content.home, videoUrl: e.target.value } })}
+                    className="mt-1 h-20 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">视频封面URL</label>
+                  <input
+                    type="text"
+                    value={content.home.videoPoster}
+                    onChange={(e) => update({ home: { ...content.home, videoPoster: e.target.value } })}
                     className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                   />
                 </div>
@@ -346,115 +269,68 @@ export function EditLabContent() {
             <section>
               <h2 className="text-lg font-semibold text-slate-800">研究</h2>
               <div className="mt-2 h-0.5 w-12 rounded-full bg-teal-500" />
-              <div className="mt-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">板块标题</label>
-                  <input
-                    type="text"
-                    value={content.research.title}
-                    onChange={(e) => update({ research: { ...content.research, title: e.target.value } })}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700">研究分支</span>
-                    <button
-                      type="button"
-                      onClick={addResearch}
-                      className="rounded-md bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
-                    >
-                      添加分支
-                    </button>
+              <button
+                type="button"
+                onClick={() => {
+                  research.addItem();
+                  setContent((prev) => ({
+                    ...prev,
+                    research: { ...prev.research, items: [...research.items, { id: '', title: '', description: '', image: '' }] },
+                  }));
+                }}
+                className="mt-4 rounded-md bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 transition"
+              >
+                + 添加研究项目
+              </button>
+              <div className="mt-6 space-y-6">
+                {research.items.map((item, idx) => (
+                  <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <input
+                      type="text"
+                      value={item.title}
+                      placeholder="标题"
+                      onChange={(e) => research.updateItem(idx, { title: e.target.value } as Partial<ResearchItem>)}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    />
+                    <textarea
+                      value={item.description}
+                      placeholder="描述"
+                      onChange={(e) => research.updateItem(idx, { description: e.target.value } as Partial<ResearchItem>)}
+                      className="mt-2 h-20 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    />
+                    <input
+                      type="text"
+                      value={item.image}
+                      placeholder="图片URL或base64"
+                      onChange={(e) => research.updateItem(idx, { image: e.target.value } as Partial<ResearchItem>)}
+                      className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    />
+                    <div className="mt-2 flex gap-2">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md bg-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 transition">
+                        <span>上传图片</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => onResearchImageFile(idx, e)}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          research.removeItem(idx);
+                          setContent((prev) => ({
+                            ...prev,
+                            research: { ...prev.research, items: prev.research.items.filter((_, i) => i !== idx) },
+                          }));
+                        }}
+                        className="rounded-md bg-red-100 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-200 transition"
+                      >
+                        删除
+                      </button>
+                    </div>
                   </div>
-                  <ul className="mt-2 space-y-4">
-                    {content.research.items.map((item, i) => (
-                      <li key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => removeResearch(i)}
-                            className="text-sm text-red-600 hover:underline"
-                          >
-                            删除
-                          </button>
-                        </div>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-xs font-medium text-slate-700">分支标题</label>
-                            <input
-                              placeholder="例如：水质监测"
-                              value={item.title}
-                              onChange={(e) => updateResearch(i, 'title', e.target.value)}
-                              className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium text-slate-700">分支描述</label>
-                            <textarea
-                              placeholder="详细描述该研究分支"
-                              value={item.description}
-                              onChange={(e) => updateResearch(i, 'description', e.target.value)}
-                              rows={4}
-                              className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium text-slate-700">配图</label>
-                            <div className="mt-2 flex gap-3">
-                              <div className="flex-shrink-0">
-                                {item.image ? (
-                                  <div>
-                                    <img
-                                      src={imageErrors.has(`research-${i}`) ? IMAGE_ERROR_PLACEHOLDER : getAssetUrl(item.image)}
-                                      alt={item.title || '研究'}
-                                      className="h-24 w-32 rounded object-cover"
-                                      onError={() => handleImageLoadError(`research-${i}`, item.image)}
-                                    />
-                                    {imageErrors.has(`research-${i}`) && (
-                                      <p className="mt-1 text-xs text-red-600">
-                                        加载失败：{item.image}
-                                      </p>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="flex h-24 w-32 items-center justify-center rounded bg-slate-200 text-sm text-slate-500">
-                                    暂无图片
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex flex-col gap-2">
-                                <label className="text-xs text-slate-500">上传图片</label>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={(e) => onResearchImageFile(i, e)}
-                                  className="text-xs"
-                                />
-                                <span className="text-xs text-slate-500">或填写路径：</span>
-                                <input
-                                  type="text"
-                                  placeholder="/images/research-xxx.jpg"
-                                  value={item.image?.startsWith('data:') ? '' : (item.image ?? '')}
-                                  onChange={(e) => {
-                                    updateResearch(i, 'image', e.target.value);
-                                    // Clear error when image path is changed
-                                    setImageErrors((prev) => {
-                                      const updated = new Set(prev);
-                                      updated.delete(`research-${i}`);
-                                      return updated;
-                                    });
-                                  }}
-                                  className="rounded border border-slate-300 px-2 py-1 text-xs"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                ))}
               </div>
             </section>
           )}
@@ -463,69 +339,65 @@ export function EditLabContent() {
             <section>
               <h2 className="text-lg font-semibold text-slate-800">论文</h2>
               <div className="mt-2 h-0.5 w-12 rounded-full bg-teal-500" />
-              <div className="mt-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">板块标题</label>
-                  <input
-                    type="text"
-                    value={content.papers.title}
-                    onChange={(e) => update({ papers: { ...content.papers, title: e.target.value } })}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700">论文列表</span>
+              <button
+                type="button"
+                onClick={() => {
+                  papers.addItem();
+                  setContent((prev) => ({
+                    ...prev,
+                    papers: { ...prev.papers, items: [...papers.items, { id: '', title: '', authors: '', year: '', url: '' }] },
+                  }));
+                }}
+                className="mt-4 rounded-md bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 transition"
+              >
+                + 添加论文
+              </button>
+              <div className="mt-6 space-y-4">
+                {papers.items.map((item, idx) => (
+                  <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <input
+                      type="text"
+                      value={item.title}
+                      placeholder="论文标题"
+                      onChange={(e) => papers.updateItem(idx, { title: e.target.value } as Partial<PaperItem>)}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    />
+                    <input
+                      type="text"
+                      value={item.authors}
+                      placeholder="作者"
+                      onChange={(e) => papers.updateItem(idx, { authors: e.target.value } as Partial<PaperItem>)}
+                      className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    />
+                    <input
+                      type="text"
+                      value={item.year}
+                      placeholder="年份"
+                      onChange={(e) => papers.updateItem(idx, { year: e.target.value } as Partial<PaperItem>)}
+                      className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    />
+                    <input
+                      type="url"
+                      value={item.url}
+                      placeholder="论文链接URL"
+                      onChange={(e) => papers.updateItem(idx, { url: e.target.value } as Partial<PaperItem>)}
+                      className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    />
                     <button
                       type="button"
-                      onClick={addPaper}
-                      className="rounded-md bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
+                      onClick={() => {
+                        papers.removeItem(idx);
+                        setContent((prev) => ({
+                          ...prev,
+                          papers: { ...prev.papers, items: prev.papers.items.filter((_, i) => i !== idx) },
+                        }));
+                      }}
+                      className="mt-3 rounded-md bg-red-100 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-200 transition"
                     >
-                      添加一条
+                      删除
                     </button>
                   </div>
-                  <ul className="mt-2 space-y-3">
-                    {content.papers.items.map((item, i) => (
-                      <li key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => removePaper(i)}
-                            className="text-sm text-red-600 hover:underline"
-                          >
-                            删除
-                          </button>
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <input
-                            placeholder="论文标题"
-                            value={item.title}
-                            onChange={(e) => updatePaper(i, 'title', e.target.value)}
-                            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                          />
-                          <input
-                            placeholder="作者"
-                            value={item.authors}
-                            onChange={(e) => updatePaper(i, 'authors', e.target.value)}
-                            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                          />
-                          <input
-                            placeholder="年份"
-                            value={item.year}
-                            onChange={(e) => updatePaper(i, 'year', e.target.value)}
-                            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                          />
-                          <input
-                            placeholder="链接 URL"
-                            value={item.url}
-                            onChange={(e) => updatePaper(i, 'url', e.target.value)}
-                            className="rounded border border-slate-300 px-2 py-1.5 text-sm"
-                          />
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                ))}
               </div>
             </section>
           )}
@@ -534,112 +406,75 @@ export function EditLabContent() {
             <section>
               <h2 className="text-lg font-semibold text-slate-800">成员</h2>
               <div className="mt-2 h-0.5 w-12 rounded-full bg-teal-500" />
-              <div className="mt-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">板块标题</label>
-                  <input
-                    type="text"
-                    value={content.members.title}
-                    onChange={(e) => update({ members: { ...content.members, title: e.target.value } })}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700">成员列表</span>
-                    <button
-                      type="button"
-                      onClick={addMember}
-                      className="rounded-md bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
-                    >
-                      添加成员
-                    </button>
+              <button
+                type="button"
+                onClick={() => {
+                  members.addItem();
+                  setContent((prev) => ({
+                    ...prev,
+                    members: { ...prev.members, list: [...members.items, { id: '', name: '', role: '', image: '', bio: '' }] },
+                  }));
+                }}
+                className="mt-4 rounded-md bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 transition"
+              >
+                + 添加成员
+              </button>
+              <div className="mt-6 space-y-4">
+                {members.items.map((item, idx) => (
+                  <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <input
+                      type="text"
+                      value={item.name}
+                      placeholder="姓名"
+                      onChange={(e) => members.updateItem(idx, { name: e.target.value } as Partial<MemberItem>)}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    />
+                    <input
+                      type="text"
+                      value={item.role}
+                      placeholder="职位/角色"
+                      onChange={(e) => members.updateItem(idx, { role: e.target.value } as Partial<MemberItem>)}
+                      className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    />
+                    <textarea
+                      value={item.bio}
+                      placeholder="个人简介"
+                      onChange={(e) => members.updateItem(idx, { bio: e.target.value } as Partial<MemberItem>)}
+                      className="mt-2 h-16 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    />
+                    <input
+                      type="text"
+                      value={item.image}
+                      placeholder="头像URL或base64"
+                      onChange={(e) => members.updateItem(idx, { image: e.target.value } as Partial<MemberItem>)}
+                      className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    />
+                    <div className="mt-2 flex gap-2">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md bg-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300 transition">
+                        <span>上传头像</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => onMemberImageFile(idx, e)}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          members.removeItem(idx);
+                          setContent((prev) => ({
+                            ...prev,
+                            members: { ...prev.members, list: prev.members.list.filter((_, i) => i !== idx) },
+                          }));
+                        }}
+                        className="rounded-md bg-red-100 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-200 transition"
+                      >
+                        删除
+                      </button>
+                    </div>
                   </div>
-                  <ul className="mt-2 space-y-4">
-                    {content.members.list.map((m, i) => (
-                      <li key={m.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => removeMember(i)}
-                            className="text-sm text-red-600 hover:underline"
-                          >
-                            删除
-                          </button>
-                        </div>
-                        <div className="flex gap-4">
-                          <div className="shrink-0">
-                            {m.image ? (
-                              <div>
-                                <img
-                                  src={imageErrors.has(`member-${i}`) ? IMAGE_ERROR_PLACEHOLDER : getAssetUrl(m.image)}
-                                  alt={m.name || '成员'}
-                                  className="h-20 w-20 rounded-full object-cover"
-                                  onError={() => handleImageLoadError(`member-${i}`, m.image)}
-                                />
-                                {imageErrors.has(`member-${i}`) && (
-                                  <p className="mt-1 text-xs text-red-600">
-                                    加载失败
-                                  </p>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-teal-100 text-teal-600">
-                                暂无
-                              </div>
-                            )}
-                            <div className="mt-2 flex flex-col gap-1">
-                              <label className="text-xs text-slate-500">上传图片（Base64）</label>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => onMemberImageFile(i, e)}
-                                className="text-xs"
-                              />
-                              <span className="text-xs text-slate-500">或填写路径：</span>
-                              <input
-                                type="text"
-                                placeholder="/images/xxx.jpg"
-                                value={m.image?.startsWith('data:') ? '' : (m.image ?? '')}
-                                onChange={(e) => {
-                                  updateMember(i, 'image', e.target.value);
-                                  // Clear error when image path is changed
-                                  setImageErrors((prev) => {
-                                    const updated = new Set(prev);
-                                    updated.delete(`member-${i}`);
-                                    return updated;
-                                  });
-                                }}
-                                className="rounded border border-slate-300 px-2 py-1 text-xs"
-                              />
-                            </div>
-                          </div>
-                          <div className="min-w-0 flex-1 space-y-2">
-                            <input
-                              placeholder="姓名"
-                              value={m.name}
-                              onChange={(e) => updateMember(i, 'name', e.target.value)}
-                              className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                            />
-                            <input
-                              placeholder="职位/角色"
-                              value={m.role}
-                              onChange={(e) => updateMember(i, 'role', e.target.value)}
-                              className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                            />
-                            <textarea
-                              placeholder="简介"
-                              value={m.bio}
-                              onChange={(e) => updateMember(i, 'bio', e.target.value)}
-                              rows={2}
-                              className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                            />
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                ))}
               </div>
             </section>
           )}
@@ -663,28 +498,12 @@ export function EditLabContent() {
                   <textarea
                     value={content.join.content}
                     onChange={(e) => update({ join: { ...content.join, content: e.target.value } })}
-                    rows={6}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    className="mt-1 h-32 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                   />
                 </div>
               </div>
             </section>
           )}
-        </div>
-      </div>
-
-      <div className="border-t border-slate-200 bg-white px-4 py-6">
-        <div className="mx-auto max-w-6xl">
-          <button
-            type="button"
-            onClick={handleExport}
-            className="w-full rounded-lg bg-teal-600 px-4 py-3 font-semibold text-white shadow-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-auto sm:min-w-[280px]"
-          >
-            生成并下载配置文件 (content.json)
-          </button>
-          <p className="mt-2 text-sm text-slate-500">
-            下载后可将 content.json 放入项目的 public 目录并替换原文件，刷新主页即可看到更新。
-          </p>
         </div>
       </div>
     </div>

@@ -1,8 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Home } from './pages/Home';
 import { EditLabContent } from './pages/EditLabContent';
-
-const enableEditor = import.meta.env.VITE_ENABLE_EDITOR === 'true';
+import { enableEditor } from './utils/config';
 
 function App() {
   return (

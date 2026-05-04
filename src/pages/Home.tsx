@@ -4,18 +4,9 @@ import { Link } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { SectionTitle } from '../components/SectionTitle';
 import { defaultContent, normalizeContent } from '../lib/content';
+import { enableEditor } from '../utils/config';
+import { getAssetUrl, IMAGE_ERROR_PLACEHOLDER } from '../utils/common';
 import type { LabContent } from '../types/content';
-
-const enableEditor = import.meta.env.VITE_ENABLE_EDITOR === 'true';
-
-function getAssetUrl(path: string): string {
-  if (!path) return '';
-  if (path.startsWith('data:') || path.startsWith('http')) return path;
-  const base = import.meta.env.BASE_URL;
-  return base + path.replace(/^\//, '');
-}
-
-const IMAGE_ERROR_PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23e2e8f0"/%3E%3Ctext x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="14" fill="%2394a3b8"%3E加载失败%3C/text%3E%3C/svg%3E';
 
 export function Home() {
   const [content, setContent] = useState<LabContent | null>(null);
@@ -186,7 +177,7 @@ export function Home() {
                         src={getAssetUrl(item.image)}
                         alt={item.title}
                         className="w-full rounded-lg object-cover shadow-md"
-                        onError={() => handleImageLoadError(`research-${item.id}`, item.image)}
+                        onError={() => handleImageLoadError(`research-${item.id}`, item.image ?? '')}
                       />
                     )}
                   </div>
@@ -238,7 +229,7 @@ export function Home() {
                         src={getAssetUrl(m.image)}
                         alt={m.name}
                         className="h-24 w-24 rounded-full object-cover"
-                        onError={() => handleImageLoadError(`member-${m.id}`, m.image)}
+                        onError={() => handleImageLoadError(`member-${m.id}`, m.image ?? '')}
                       />
                     )}
                   </div>

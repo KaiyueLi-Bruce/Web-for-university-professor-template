@@ -1,4 +1,4 @@
-import type { LabContent, MemberItem, PaperItem } from '../types/content';
+import type { LabContent, MemberItem, PaperItem, ResearchItem } from '../types/content';
 
 export const defaultContent: LabContent = {
   labName: 'XX 大学 · XX 实验室',
@@ -21,45 +21,50 @@ export function createStableId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function normalizePaper(item: Partial<PaperItem>, index: number): PaperItem {
-  return {
-    id: item.id?.trim() || `paper-${index + 1}`,
-    title: item.title ?? '',
-    authors: item.authors ?? '',
-    year: item.year ?? '',
-    url: item.url ?? '',
+/**
+ * Creates a normalizer factory for handling partial item objects
+ * Ensures all required fields have default values
+ */
+function createNormalizer<T extends { id?: string }>(
+  fieldDefaults: Record<string, any>,
+  idPrefix: string
+): (item: Partial<T>, index: number) => T {
+  return (item: Partial<T>, index: number): T => {
+    const result: any = { ...fieldDefaults, ...item };
+    if (!result.id || !result.id.trim?.()) {
+      result.id = `${idPrefix}-${index + 1}`;
+    } else {
+      result.id = result.id.trim();
+    }
+    return result as T;
   };
 }
 
-function normalizeMember(item: Partial<MemberItem>, index: number): MemberItem {
-  return {
-    id: item.id?.trim() || `member-${index + 1}`,
-    name: item.name ?? '',
-    role: item.role ?? '',
-    image: item.image ?? '',
-    bio: item.bio ?? '',
-  };
-}
+const normalizePaper = createNormalizer<PaperItem>(
+  { title: '', authors: '', year: '', url: '' },
+  'paper'
+);
 
-function normalizeResearch(item: Partial<any>, index: number): any {
-  return {
-    id: item.id?.trim() || `research-${index + 1}`,
-    title: item.title ?? '',
-    description: item.description ?? '',
-    image: item.image ?? '',
-  };
-}
+const normalizeMember = createNormalizer<MemberItem>(
+  { name: '', role: '', image: '', bio: '' },
+  'member'
+);
+
+const normalizeResearch = createNormalizer<ResearchItem>(
+  { title: '', description: '', image: '' },
+  'research'
+);
 
 export function normalizeContent(data: unknown): LabContent {
   const d = (data ?? {}) as Partial<LabContent>;
   const papersItems = Array.isArray(d.papers?.items)
-    ? d.papers.items.map((item, index) => normalizePaper(item, index))
+    ? d.papers.items.map((item, index) => normalizePaper(item as Partial<PaperItem>, index))
     : defaultContent.papers.items;
   const membersList = Array.isArray(d.members?.list)
-    ? d.members.list.map((item, index) => normalizeMember(item, index))
+    ? d.members.list.map((item, index) => normalizeMember(item as Partial<MemberItem>, index))
     : defaultContent.members.list;
   const researchItems = Array.isArray(d.research?.items)
-    ? d.research.items.map((item, index) => normalizeResearch(item, index))
+    ? d.research.items.map((item, index) => normalizeResearch(item as Partial<ResearchItem>, index))
     : defaultContent.research.items;
 
   return {
